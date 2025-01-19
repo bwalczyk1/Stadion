@@ -1,9 +1,20 @@
 #include <sys/ipc.h>
 
 // struktura komunikatu
-struct bufor{
-	long mtype;
-	int mvalue;
+struct msg {
+	long mType;
+	int mValue;
+};
+
+struct valueWithCounter {
+    int value;
+    int counter;
+};
+
+// struktura komunikatu rozszerzonego
+struct msgCounter {
+    long mType;
+    struct valueWithCounter mValueWithCounter;
 };
 
 key_t getFtokKey(int keyID) {
@@ -41,16 +52,30 @@ int initializeSharedMemory(int keyID, int shmSize) {
     return shmID;
 }
 
-void sendMessage(int msgID, struct bufor* message) {
-    if (msgsnd(msgID, message, sizeof(message->mvalue), 0) == -1) {
+void sendMessage(int msgID, struct msg* message) {
+    if (msgsnd(msgID, message, sizeof(message->mValue), 0) == -1) {
         printf("Blad wyslania komunikatu\n");
         exit(1);
     }
 }
 
-void receiveMessage(int msgID, struct bufor* message, int msgType) {
-    if (msgrcv(msgID, message, sizeof(message->mvalue), msgType, 0)==-1) {
+void sendMessageWithCounter(int msgID, struct msgCounter* messageWithCounter) {
+    if (msgsnd(msgID, messageWithCounter, sizeof(messageWithCounter->mValueWithCounter), 0) == -1) {
+        printf("Blad wyslania komunikatu\n");
+        exit(1);
+    }
+}
+
+void receiveMessage(int msgID, struct msg* message, int msgType) {
+    if (msgrcv(msgID, message, sizeof(message->mValue), msgType, 0) == -1) {
         printf("Blad odbioru komunikatu\n");
         exit(1);
-   }
+    }
+}
+
+void receiveMessageWithCounter(int msgID, struct msgCounter* messageWithCounter, int msgType) {
+    if (msgrcv(msgID, messageWithCounter, sizeof(messageWithCounter->mValueWithCounter), msgType, 0) == -1) {
+        printf("Blad odbioru komunikatu\n");
+        exit(1);
+    }
 }

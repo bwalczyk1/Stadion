@@ -1,4 +1,23 @@
+// struktura komunikatu
+struct msg {
+	long mType;
+	int mValue;
+};
+
+struct valueWithCounter {
+    int value;
+    int counter;
+};
+
+// struktura komunikatu rozszerzonego
+struct msgCounter {
+    long mType;
+    struct valueWithCounter mValueWithCounter;
+};
+
 int initializeMessageQueue(int keyID);
 int initializeSharedMemory(int keyID, int shmSize);
-void sendMessage(int msgID, struct bufor* message);
-void receiveMessage(int msgID, struct bufor* message, int msgType);
+void sendMessage(int msgID, struct msg* message);
+void sendMessageWithCounter(int msgID, struct msgCounter* messageWithCounter);
+void receiveMessage(int msgID, struct msg* message, int msgType);
+void receiveMessageWithCounter(int msgID, struct msgCounter* messageWithCounter, int msgType);

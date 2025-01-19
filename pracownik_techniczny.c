@@ -5,24 +5,13 @@
 #include <sys/msg.h>
 #include <signal.h>
 
+#include <settings.h>
 #include <helpers.h>
 
-#define MY_SHM_INDEX_WAITING_TEAM 0
-#define MY_SHM_INDEX_WAITING_NUMBER 0
-#define MY_SHM_SIZE 1
+struct msg message;
+struct msgCounter messageWithCounter;
 
-#define MSG_TYPE_FAN 1
-#define MSG_TYPE_FAN_WAITING 2
-
-// struktura komunikatu
-struct bufor{
-	long mtype;
-	int mvalue;
-};
-
-struct bufor message;
-
-int shmID, msgID;  //ID kolejki kom., pamieci dzielonej
+int shmID, msgFanID, msgWorkerID, msgControlID;  //ID kolejek kom., pamieci dzielonej
 
 void handler1() {
 
@@ -39,12 +28,17 @@ void handler3() {
 
 int main() {
     // Inicjuje mechanizmy synchronizujące
-    msgID = initializeMessageQueue('A');
-    shmID = initializeSharedMemory('B', MY_SHM_SIZE * sizeof(int));
+    msgFanID = initializeMessageQueue(MSG_QUEUE_FAN);
+    msgWorkerID = initializeMessageQueue(MSG_QUEUE_WORKER);
+    msgControlID = initializeMessageQueue(MSG_QUEUE_CONTROL);
+    shmID = initializeSharedMemory('B', (SHM_SIZE_WITHOUT_PLACES + PLACES) * sizeof(int));
 
     int* pam = (int*) shmat(shmID, NULL, 0);
-    pam[MY_SHM_INDEX_WAITING_TEAM] = 0;
-    pam[MY_SHM_INDEX_WAITING_NUMBER] = 0;
+    pam[SHM_INDEX_WAITING_NUMBER] = 0;
+
+    for (int i = 0; i < PLACES; i++) {
+        pam[SHM_SIZE_WITHOUT_PLACES + i] = 0;
+    } 
 
     // Obsługuje sygnał1
     struct sigaction act1;
@@ -65,38 +59,40 @@ int main() {
     act3.sa_flags=0;
     sigaction(SIGINT,&act3,0);
 
-    // Komunikaty dla zwykłych kibiców i oczekujących mogą być na tej samej kolejce
+    // Komunikaty dla danego programu będą na tej samej kolejce
+
+    for (int i = 0; i < PLACES * CONTROLS_PER_PLACE; i++) {
+        // Włącza proces kontroli
+        // ...
+
+        // Wysyła kontroli jej numer
+        message.mType = MSG_INITIATE_CONTROL;
+        message.mValue = i;
+
+        sendMessage(msgControlID, &message);
+    }
 
     // Dopóki true
     while (1) {
-        // Czeka na komunikat od stanowiska kontroli / kontroli
-        int control = 1;
-        message.mvalue = control;
+        // Czeka na komunikat od kontroli
+        receiveMessage(msgWorkerID, &message, MSG_EMPTY_CONTROL);
 
-        // Jeśli liczba przepuszczających > 0 i dostępna kontrola odpowiada przepuszczającym, wysyła jeden komunikat do przepuszczających i continue
-        if (pam[MY_SHM_INDEX_WAITING_NUMBER] > 0 && (message.mvalue == 0 || message.mvalue == pam[MY_SHM_INDEX_WAITING_TEAM])) {
-            message.mtype = MSG_TYPE_FAN_WAITING;
-            send_message(msgID, &message);
+        // Jeśli liczba przepuszczających > 0 wysyła do przepuszczających i continue
+        if (pam[SHM_INDEX_WAITING_NUMBER] > 0 ) {
+            messageWithCounter.mType = MSG_EMPTY_CONTROL_FOR_WAITING;
+            messageWithCounter.mValueWithCounter.value = message.mValue;
+            messageWithCounter.mValueWithCounter.counter = SHM_INDEX_WAITING_NUMBER;
+            sendMessageWithCounter(msgFanID, &messageWithCounter);
 
             continue;
         }
 
-        // Do każdego z przepuszczających wysyła komunikat
-        message.mtype = MSG_TYPE_FAN_WAITING;
-        
-        for (int i = 0; i < pam[MY_SHM_INDEX_WAITING_NUMBER]; i++) {
-            send_message(msgID, &message);
-        }
-
         // Wysyła komunikat do zwykłych kibiców
-        message.mtype = MSG_TYPE_FAN;
-        send_message(msgID, &message);
+        send_message(msgFanID, &message);
     }
 
     // Kontroluje 3 stanowiska kontroli
-    // Stanowiska kontroli to semafory, licznik odpowiada za liczbe wolnych miejsc ???
-    // Kolejka osobnym programem ???
-    // Pamięć dzielona, aby wiedziec, którzy kibice są w danej kolejce ???
+    // Kolejka osobnym programem
     
     return 0;
 }
