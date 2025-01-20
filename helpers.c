@@ -1,4 +1,9 @@
 #include <sys/ipc.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/sem.h>
+#include <sys/errno.h>
 
 // struktura komunikatu
 struct msg {
@@ -78,4 +83,63 @@ void receiveMessageWithCounter(int msgID, struct msgCounter* messageWithCounter,
         printf("Blad odbioru komunikatu\n");
         exit(1);
     }
+}
+
+int allocateSem(key_t key, int number, int flags)
+{
+    int semID;
+    if ( (semID = semget(key, number, flags)) == -1)
+    {
+        perror("Blad semget (alokujSemafor): ");
+        exit(1);
+    }
+
+    return semID;
+}
+
+int freeSem(int semID, int number)
+{
+    return semctl(semID, number, IPC_RMID, NULL);
+}
+
+void initializeSem(int semID, int number, int val)
+{
+    if ( semctl(semID, number, SETVAL, val) == -1 )
+    {
+        perror("Blad semctl (inicjalizujSemafor): ");
+        exit(1);
+    }
+}
+
+int waitSem(int semID, int number, int flags)
+{
+    int result;
+    struct sembuf operacje[1];
+    operacje[0].sem_num = number;
+    operacje[0].sem_op = -1;
+    operacje[0].sem_flg = 0 | flags;//SEM_UNDO;
+    
+    if ( semop(semID, operacje, 1) == -1 )
+    {
+        //perror("Blad semop (waitSemafor)");
+        return -1;
+    }
+    
+    return 1;
+}
+
+void signalSem(int semID, int number)
+{
+    struct sembuf operacje[1];
+    operacje[0].sem_num = number;
+    operacje[0].sem_op = 1;
+    //operacje[0].sem_flg = SEM_UNDO;
+
+    if (semop(semID, operacje, 1) == -1 )
+        perror("Blad semop (postSemafor): ");
+}
+
+int getSemValue(int semID, int number)
+{
+    return semctl(semID, number, GETVAL, NULL);
 }
