@@ -111,10 +111,10 @@ int main() {
         pthread_create(&child, NULL, &childControl, (void*) &childControlStruct);
     }
 
-    message.mType = savedControlNumber;
+    message.mType = MSG_QUEUE_CONTROL_TYPES + savedControlNumber + 1;
     message.mValue = isThreat;
     sendMessage(msgControlID, &message);
-    receiveMessage(msgFanID, &message, savedControlNumber);
+    receiveMessage(msgFanID, &message, MSG_QUEUE_FAN_TYPES + savedControlNumber + 1);
 
     if (message.mValue == 0) {
         return 1;
@@ -137,11 +137,11 @@ int main() {
 void* childControl(void* childControlStructVoid) {
     struct controlStruct* childControlStruct = (struct controlStruct*) childControlStructVoid;
     struct msg childMessage;
-    childMessage.mType = childControlStruct->controlNumber;
+    childMessage.mType = MSG_QUEUE_CONTROL_TYPES + childControlStruct->controlNumber + 1;
     childMessage.mValue = childControlStruct->isThreat;
 
     sendMessage(msgControlID, &childMessage);
-    receiveMessage(msgFanID, &childMessage, childControlStruct->controlNumber);
+    receiveMessage(msgFanID, &childMessage, MSG_QUEUE_FAN_TYPES + childControlStruct->controlNumber + 1);
 
     childControlStruct->result = childMessage.mValue;
 }

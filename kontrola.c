@@ -21,7 +21,7 @@ int main() {
 
     while (1) {
         // Czeka na komunikat od kibica
-        receiveMessage(msgControlID, &message, controlNumber);
+        receiveMessage(msgControlID, &message, MSG_QUEUE_CONTROL_TYPES + controlNumber + 1);
 
         if (message.mValue) {
             // Kibic nie przeszedł kontroli
@@ -32,6 +32,7 @@ int main() {
         }
 
         // Wysyła komunikat zwrotny kibicowi
+        message.mType = MSG_QUEUE_FAN_TYPES + controlNumber + 1;
         sendMessage(msgFanID, &message);
 
         // Wysyła komunikat o ponownie wolnym miejscu
