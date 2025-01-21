@@ -23,7 +23,10 @@ int main() {
         // Czeka na komunikat od kibica
         receiveMessage(msgControlID, &message, MSG_QUEUE_CONTROL_TYPES + controlNumber + 1);
 
-        if (message.mValue) {
+        if (message.mValue == MSG_CONTROL_END) {
+            // Zakończ proces
+            exit(0);
+        } else if (message.mValue) {
             // Kibic nie przeszedł kontroli
             message.mValue = 0;
         } else {

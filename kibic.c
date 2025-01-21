@@ -25,12 +25,13 @@ struct controlStruct {
 
 struct msg message;
 
-int shmID, msgFanID, msgControlID, semID;  // ID kolejek kom., pamieci dzielonej i semaforów
+int shmID, msgFanID, msgWorkerID, msgControlID, semID;  // ID kolejek kom., pamieci dzielonej i semaforów
 int team, hasChild, isVip; // zmienne osobiste
 pthread_t child;
 
 int main() {
     msgFanID = initializeMessageQueue(MSG_QUEUE_FAN);
+    msgWorkerID = initializeMessageQueue(MSG_QUEUE_WORKER);
     msgControlID = initializeMessageQueue(MSG_QUEUE_CONTROL);
     semID = allocateSem(SEM_KEY_ID, SEM_NUMBER);
     shmID = initializeSharedMemory(SHM_KEY_ID, (SHM_SIZE_WITHOUT_PLACES + PLACES) * sizeof(int));
@@ -49,7 +50,7 @@ int main() {
     waitToEnter();
     waitToExit();
 
-    return 0;
+    exit(0);
 }
 
 void controlProcess() {
@@ -65,6 +66,14 @@ void controlProcess() {
     receiveMessage(msgFanID, &message, MSG_EMPTY_CONTROL);
 
     int controlNumber = message.mValue;
+
+    if (controlNumber == MSG_CONTROL_END) {
+        sendMessage(msgFanID, &message);
+        
+        // Zakończ proces
+        exit(0);
+    }
+
     int messageTeam = pam[SHM_SIZE_WITHOUT_PLACES + controlNumber / PLACES];
 
     if (messageTeam == 0 || messageTeam == team) {
@@ -125,6 +134,11 @@ void controlProcess() {
         } else if (messageWithCounter.mValueWithCounter.value != MSG_CONTROL_TAKEN) {
             message.mValue = messageWithCounter.mValueWithCounter.value;
             sendMessage(msgFanID, &message);
+        }
+
+        if (messageWithCounter.mValueWithCounter.value == MSG_CONTROL_END) {
+            //Zakończ proces
+            exit(0);
         }
     }
 
@@ -205,6 +219,14 @@ void waitAlone(int gate) {
 
     if (gate != SEM_ENTRANCE_CONTROL && gate != SEM_EXIT_CONTROL) {
         signalSem(semID, gate);
+    } else {
+        signalSem(semID, gate == SEM_ENTRANCE_CONTROL ? SEM_EXIT_CONTROL : SEM_ENTRANCE_CONTROL);
+    }
+        
+    if (gate == SEM_EXIT_CONTROL && getSemValue(semID, SEM_EXIT_CONTROL) == 0) {
+        // Wyślij komunikat o opuszczeniu stadionu przez wszystkich
+        message.mType = MSG_FANS_LEFT;
+        sendMessage(msgWorkerID, &message);
     }
 }
 
@@ -226,5 +248,7 @@ void* childWait(void* gateVoid) {
 
     if (gate != SEM_ENTRANCE_CONTROL && gate != SEM_EXIT_CONTROL) {
         signalSem(semID, gate);
+    } else {
+        signalSem(semID, gate == SEM_ENTRANCE_CONTROL ? SEM_EXIT_CONTROL : SEM_ENTRANCE_CONTROL);
     }
 }
