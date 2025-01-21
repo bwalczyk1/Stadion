@@ -85,11 +85,12 @@ void receiveMessageWithCounter(int msgID, struct msgCounter* messageWithCounter,
     }
 }
 
-int allocateSem(key_t key, int number, int flags)
+int allocateSem(int keyID, int number)
 {
-    int semID;
-    if ( (semID = semget(key, number, flags)) == -1)
-    {
+    key_t ftokKey = getFtokKey(keyID);
+    int semID= semget(ftokKey, number, IPC_CREAT | 0666);
+    
+    if (semID== -1) {
         perror("Blad semget (alokujSemafor): ");
         exit(1);
     }
@@ -111,13 +112,13 @@ void initializeSem(int semID, int number, int val)
     }
 }
 
-int waitSem(int semID, int number, int flags)
+int waitSem(int semID, int number)
 {
     int result;
     struct sembuf operacje[1];
     operacje[0].sem_num = number;
     operacje[0].sem_op = -1;
-    operacje[0].sem_flg = 0 | flags;//SEM_UNDO;
+    operacje[0].sem_flg = 0;;
     
     if ( semop(semID, operacje, 1) == -1 )
     {

@@ -11,7 +11,7 @@
 struct msg message;
 struct msgCounter messageWithCounter;
 
-int shmID, msgFanID, msgWorkerID, msgControlID;  //ID kolejek kom., pamieci dzielonej
+int shmID, msgFanID, msgWorkerID, msgControlID, semID;  // ID kolejek kom., pamieci dzielonej i semaforów
 
 void handler1() {
 
@@ -31,7 +31,8 @@ int main() {
     msgFanID = initializeMessageQueue(MSG_QUEUE_FAN);
     msgWorkerID = initializeMessageQueue(MSG_QUEUE_WORKER);
     msgControlID = initializeMessageQueue(MSG_QUEUE_CONTROL);
-    shmID = initializeSharedMemory('B', (SHM_SIZE_WITHOUT_PLACES + PLACES) * sizeof(int));
+    semID = allocateSem(SEM_KEY_ID, SEM_NUMBER);
+    shmID = initializeSharedMemory(SHM_KEY_ID, (SHM_SIZE_WITHOUT_PLACES + PLACES) * sizeof(int));
 
     int* pam = (int*) shmat(shmID, NULL, 0);
     pam[SHM_INDEX_WAITING_NUMBER] = 0;
@@ -59,7 +60,10 @@ int main() {
     act3.sa_flags=0;
     sigaction(SIGINT,&act3,0);
 
-    // Komunikaty dla danego programu będą na tej samej kolejce
+    // Ustawia odpowiednie semafory
+    initializeSem(semID, SEM_ENTRANCE_CONTROL, K);
+    initializeSem(semID, SEM_ENTRANCE_VIP, 1);
+    initializeSem(semID, SEM_ENTRANCE, 1);
 
     for (int i = 0; i < PLACES * CONTROLS_PER_PLACE; i++) {
         // Włącza proces kontroli
@@ -71,6 +75,8 @@ int main() {
 
         sendMessage(msgControlID, &message);
     }
+
+    // Ustaw semafory
 
     // Dopóki true
     while (1) {

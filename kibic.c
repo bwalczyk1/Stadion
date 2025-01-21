@@ -9,6 +9,14 @@
 #include <settings.h>
 #include <helpers.h>
 
+void controlProcess();
+void* childControl(void* childControlStructVoid);
+void waitToEnter();
+void waitToExit();
+void waitAlone(int gate);
+void waitWithChild(int gate);
+void* childWait(void* gateVoid);
+
 struct controlStruct {
     int controlNumber;
     int isThreat;
@@ -17,22 +25,37 @@ struct controlStruct {
 
 struct msg message;
 
-int shmID, msgFanID, msgControlID;  //ID kolejek kom., pamieci dzielonej
+int shmID, msgFanID, msgControlID, semID;  // ID kolejek kom., pamieci dzielonej i semaforów
+int team, hasChild, isVip; // zmienne osobiste
+pthread_t child;
 
 int main() {
     msgFanID = initializeMessageQueue(MSG_QUEUE_FAN);
     msgControlID = initializeMessageQueue(MSG_QUEUE_CONTROL);
-    shmID = initializeSharedMemory('B', (SHM_SIZE_WITHOUT_PLACES + PLACES) * sizeof(int));
-
-    int* pam = (int*) shmat(shmID, NULL, 0);
+    semID = allocateSem(SEM_KEY_ID, SEM_NUMBER);
+    shmID = initializeSharedMemory(SHM_KEY_ID, (SHM_SIZE_WITHOUT_PLACES + PLACES) * sizeof(int));
 
     // Przechowuje informacje o sobie
     srand(time(NULL));
-    int team = rand() % 2 + 1;
+    team = rand() % 2 + 1;
+    hasChild = rand() % 2;
+    isVip = rand() % 2;
+
+    if (!isVip) {
+        controlProcess();
+    }
+
+    // Wchodzi na stadion
+    waitToEnter();
+    waitToExit();
+
+    return 0;
+}
+
+void controlProcess() {
+    int* pam = (int*) shmat(shmID, NULL, 0);
     int isThreat = rand() % 2 + 1;
     int savedControlNumber = 0;
-    int hasChild = rand() % 2 + 1;
-    pthread_t child;
     struct controlStruct childControlStruct;
     childControlStruct.isThreat = hasChild ? (rand() % 2 + 1) : 0;
     childControlStruct.controlNumber = 0;
@@ -127,11 +150,6 @@ int main() {
             return 1;
         }
     }
-
-    // Wchodzi na stadion
-    // ...
-
-    return 0;
 }
 
 void* childControl(void* childControlStructVoid) {
@@ -144,4 +162,69 @@ void* childControl(void* childControlStructVoid) {
     receiveMessage(msgFanID, &childMessage, MSG_QUEUE_FAN_TYPES + childControlStruct->controlNumber + 1);
 
     childControlStruct->result = childMessage.mValue;
+}
+
+void waitToEnter() {
+    int gate = SEM_ENTRANCE_CONTROL;
+
+    if (hasChild) {
+        waitWithChild(gate);
+    } else {
+        waitAlone(gate);
+    }
+    
+    gate = isVip ? SEM_ENTRANCE_VIP : SEM_ENTRANCE;
+
+    if (hasChild) {
+        waitWithChild(gate);
+    } else {
+        waitAlone(gate);
+    }
+}
+
+void waitToExit() {
+    int gate = isVip ? SEM_EXIT_VIP : SEM_EXIT;
+
+    if (hasChild) {
+        waitWithChild(gate);
+    } else {
+        waitAlone(gate);
+    }
+    
+    gate = SEM_EXIT_CONTROL;
+
+    if (hasChild) {
+        waitWithChild(gate);
+    } else {
+        waitAlone(gate);
+    }
+}
+
+void waitAlone(int gate) {
+    waitSem(semID, gate);
+
+    if (gate != SEM_ENTRANCE_CONTROL && gate != SEM_EXIT_CONTROL) {
+        signalSem(semID, gate);
+    }
+}
+
+void waitWithChild(int gate) {
+    if (hasChild) {
+        pthread_create(&child, NULL, &childWait, (void*) gate);
+    }
+
+    waitAlone(gate);
+
+    if (hasChild) {
+        pthread_join(child, NULL);
+    }
+}
+
+void* childWait(void* gateVoid) {
+    int* gate = (int*) gateVoid;
+    waitSem(semID, gate);
+
+    if (gate != SEM_ENTRANCE_CONTROL && gate != SEM_EXIT_CONTROL) {
+        signalSem(semID, gate);
+    }
 }
