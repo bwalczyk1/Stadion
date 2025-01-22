@@ -19,6 +19,9 @@
 #define MSG_INITIATE_CONTROL 1
 #define MSG_QUEUE_CONTROL_TYPES 1
 
+#define MSG_QUEUE_BOSS 'B'
+#define MSG_BOSS_INFO 1
+
 #define SEM_KEY_ID 'S'
 #define SEM_ENTRANCE_CONTROL 0
 #define SEM_ENTRANCE 1

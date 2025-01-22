@@ -4,6 +4,7 @@
 #include <sys/shm.h>
 #include <sys/msg.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include "settings.h"
 #include "helpers.h"
@@ -11,7 +12,7 @@
 struct msg message;
 struct msgCounter messageWithCounter;
 
-int shmID, msgFanID, msgWorkerID, msgControlID, semID;  // ID kolejek kom., pamieci dzielonej i semaforów
+int shmID, msgFanID, msgWorkerID, msgControlID, msgBossID, semID;  // ID kolejek kom., pamieci dzielonej i semaforów
 int* pam; // wskaźnik do pamięci dzielonej
 int placesLeft; // liczba pozostałych miejsc na stadionie
 
@@ -50,10 +51,11 @@ void openExit() {
 
     // Poczekaj aż wszyscy opuszczą stadion
     receiveMessage(msgWorkerID, &message, MSG_FANS_LEFT);
+    message.mType = MSG_BOSS_INFO;
+    message.mValue = MSG_CONTROL_END;
+    sendMessage(msgBossID, &message);
 
     // Wyłącz kontrole
-    message.mValue = MSG_CONTROL_END;
-
     for (int i = 0; i < PLACES * CONTROLS_PER_PLACE; i++) {
         message.mType = MSG_QUEUE_CONTROL_TYPES + i + 1;
         sendMessage(msgControlID, &message);
@@ -69,6 +71,7 @@ void openExit() {
 
     msgctl(msgFanID, IPC_RMID, NULL);
     msgctl(msgWorkerID, IPC_RMID, NULL);
+    msgctl(msgBossID, IPC_RMID, NULL);
     msgctl(msgControlID, IPC_RMID, NULL);
 }
 
@@ -77,6 +80,7 @@ int main() {
     msgFanID = initializeMessageQueue(MSG_QUEUE_FAN);
     msgWorkerID = initializeMessageQueue(MSG_QUEUE_WORKER);
     msgControlID = initializeMessageQueue(MSG_QUEUE_CONTROL);
+    msgBossID = initializeMessageQueue(MSG_QUEUE_BOSS);
     semID = allocateSem(SEM_KEY_ID, SEM_NUMBER);
     shmID = initializeSharedMemory(SHM_KEY_ID, (SHM_SIZE_WITHOUT_PLACES + PLACES) * sizeof(int));
 
@@ -94,6 +98,11 @@ int main() {
     // Obsługuje sygnał3
     signal(SIGINT, openExit);
 
+    // Wysyła swoje PID do kierownika
+    message.mType = MSG_BOSS_INFO;
+    message.mValue = getpid();
+    sendMessage(msgBossID, &message);
+
     // Ustawia odpowiednie semafory
     initializeSem(semID, SEM_ENTRANCE_VIP, 1);
     initializeSem(semID, SEM_ENTRANCE, 1);
@@ -103,7 +112,9 @@ int main() {
 
     for (int i = 0; i < PLACES * CONTROLS_PER_PLACE; i++) {
         // Włącza proces kontroli
-        // ...
+        if (fork() == 0) {
+            execl("./kontrola", "kontrola", NULL);
+        }
 
         // Wysyła kontroli jej numer
         message.mType = MSG_INITIATE_CONTROL;
@@ -111,8 +122,6 @@ int main() {
 
         sendMessage(msgControlID, &message);
     }
-
-    // Ustaw semafory
 
     // Dopóki true
     while (1) {
@@ -133,8 +142,5 @@ int main() {
         sendMessage(msgFanID, &message);
     }
 
-    // Kontroluje 3 stanowiska kontroli
-    // Kolejka osobnym programem
-    
     return 0;
 }

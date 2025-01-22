@@ -1,10 +1,12 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/msg.h>
 #include <time.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include "settings.h"
 #include "helpers.h"
@@ -48,12 +50,15 @@ int main() {
 
     // Wchodzi na stadion
     waitToEnter();
+    printf("Kibic %d wszedł na stadion", getpid());
     waitToExit();
+    printf("Kibic %d wyszedł ze stadionu", getpid());
 
     exit(0);
 }
 
 void controlProcess() {
+    printf("Kibic %d czeka w kolejce", getpid());
     int* pam = (int*) shmat(shmID, NULL, 0);
     int isThreat = rand() % 2 + 1;
     int savedControlNumber = 0;
@@ -143,6 +148,7 @@ void controlProcess() {
     }
 
     // Ustawia się do stanowiska
+    printf("Kibic %d przechodzi kontrole %d", getpid(), savedControlNumber);
     
     if (hasChild) {
         pthread_create(&child, NULL, &childControl, (void*) &childControlStruct);

@@ -1,4 +1,5 @@
 main: kibic kierownik kontrola pracownik_techniczny
+	gcc -o main main.c
 	rm *.o
 
 kibic: kibic.o helpers.o
@@ -10,8 +11,11 @@ kibic.o: kibic.c
 helpers.o: helpers.c helpers.h
 	gcc -c helpers.c
 
-kierownik: kierownik.c
-	gcc -o kierownik kierownik.c
+kierownik: kierownik.o helpers.o
+	gcc kierownik.o helpers.o -o kierownik
+
+kierownik.o: kierownik.c
+	gcc -c kierownik.c
 
 kontrola: kontrola.o helpers.o
 	gcc kontrola.o helpers.o -o kontrola
