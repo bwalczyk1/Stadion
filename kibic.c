@@ -6,8 +6,8 @@
 #include <time.h>
 #include <pthread.h>
 
-#include <settings.h>
-#include <helpers.h>
+#include "settings.h"
+#include "helpers.h"
 
 void controlProcess();
 void* childControl(void* childControlStructVoid);
@@ -154,14 +154,14 @@ void controlProcess() {
     receiveMessage(msgFanID, &message, MSG_QUEUE_FAN_TYPES + savedControlNumber + 1);
 
     if (message.mValue == 0) {
-        return 1;
+        exit(1);
     }
 
     if (hasChild) {
         pthread_join(child, NULL);
 
         if (childControlStruct.result == 0) {
-            return 1;
+            exit(1);
         }
     }
 }
@@ -232,7 +232,7 @@ void waitAlone(int gate) {
 
 void waitWithChild(int gate) {
     if (hasChild) {
-        pthread_create(&child, NULL, &childWait, (void*) gate);
+        pthread_create(&child, NULL, &childWait, (void*) &gate);
     }
 
     waitAlone(gate);
@@ -244,11 +244,11 @@ void waitWithChild(int gate) {
 
 void* childWait(void* gateVoid) {
     int* gate = (int*) gateVoid;
-    waitSem(semID, gate);
+    waitSem(semID, *gate);
 
-    if (gate != SEM_ENTRANCE_CONTROL && gate != SEM_EXIT_CONTROL) {
-        signalSem(semID, gate);
+    if (*gate != SEM_ENTRANCE_CONTROL && *gate != SEM_EXIT_CONTROL) {
+        signalSem(semID, *gate);
     } else {
-        signalSem(semID, gate == SEM_ENTRANCE_CONTROL ? SEM_EXIT_CONTROL : SEM_ENTRANCE_CONTROL);
+        signalSem(semID, *gate == SEM_ENTRANCE_CONTROL ? SEM_EXIT_CONTROL : SEM_ENTRANCE_CONTROL);
     }
 }

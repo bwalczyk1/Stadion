@@ -5,8 +5,8 @@
 #include <sys/msg.h>
 #include <signal.h>
 
-#include <settings.h>
-#include <helpers.h>
+#include "settings.h"
+#include "helpers.h"
 
 struct msg message;
 struct msgCounter messageWithCounter;
@@ -130,7 +130,7 @@ int main() {
         }
 
         // Wysyła komunikat do zwykłych kibiców
-        send_message(msgFanID, &message);
+        sendMessage(msgFanID, &message);
     }
 
     // Kontroluje 3 stanowiska kontroli

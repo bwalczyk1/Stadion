@@ -1,5 +1,7 @@
-#include <helpers.h>
-#include <settings.h>
+#include <stdlib.h>
+
+#include "helpers.h"
+#include "settings.h"
 
 int msgFanID, msgWorkerID, msgControlID;  //ID kolejek komentarzy
 

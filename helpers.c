@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <sys/sem.h>
 #include <sys/errno.h>
+#include <sys/msg.h>
+#include <sys/shm.h>
 
 // struktura komunikatu
 struct msg {
@@ -35,7 +37,7 @@ key_t getFtokKey(int keyID) {
 
 int initializeMessageQueue(int keyID) {
     key_t ftokKey = getFtokKey(keyID);
-    int msgID = msgget(ftokKey,IPC_CREAT|IPC_EXCL|0666);
+    int msgID = msgget(ftokKey, IPC_CREAT | 0666);
 
     if (msgID == -1) {
         printf("Blad kolejki komunikatow\n"); 
@@ -47,7 +49,7 @@ int initializeMessageQueue(int keyID) {
 
 int initializeSharedMemory(int keyID, int shmSize) {
     key_t ftokKey = getFtokKey(keyID);
-    int shmID = shmget(ftokKey, shmSize, IPC_CREAT|IPC_EXCL|0666);
+    int shmID = shmget(ftokKey, shmSize, IPC_CREAT | 0666);
     
     if (shmID == -1) {
         printf("Blad pamieci dzielonej\n");

@@ -12,7 +12,7 @@
 #define MSG_CONTROL_TAKEN -1
 #define MSG_CONTROL_END -2
 
-#define MSG_QUEUE_WORKER 'W'
+#define MSG_QUEUE_WORKER 'E'
 #define MSG_FANS_LEFT 2
 
 #define MSG_QUEUE_CONTROL 'C'
