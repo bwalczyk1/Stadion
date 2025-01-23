@@ -51,8 +51,10 @@ int main() {
     // Wchodzi na stadion
     waitToEnter();
     printf("Kibic %d wszedł na stadion\n", getpid());
+    printf("Sem: wejscie %d, wyjscie %d\n", getSemValue(semID, SEM_ENTRANCE_CONTROL), getSemValue(semID, SEM_EXIT_CONTROL));
     waitToExit();
     printf("Kibic %d wyszedł ze stadionu\n", getpid());
+    printf("Sem: wejscie %d, wyjscie %d\n", getSemValue(semID, SEM_ENTRANCE_CONTROL), getSemValue(semID, SEM_EXIT_CONTROL));
 
     exit(0);
 }
@@ -61,25 +63,30 @@ void controlProcess() {
     printf("Kibic %d czeka w kolejce\n", getpid());
     int* pam = (int*) shmat(shmID, NULL, 0);
     int isThreat = rand() % 2;
-    int savedControlNumber = 0;
+    int savedControlNumber = -1;
     struct controlStruct childControlStruct;
     childControlStruct.isThreat = hasChild ? (rand() % 2) : 0;
-    childControlStruct.controlNumber = 0;
+    childControlStruct.controlNumber = -1;
     int passed = 0;
 
     // Czeka na zwykły komunikat od pracownika technicznego o wolnej kontroli
     receiveMessage(msgFanID, &message, MSG_EMPTY_CONTROL);
 
     int controlNumber = message.mValue;
+    printf("Kibic %d otrzymal wiadomosc %d\n", getpid(), controlNumber);
 
     if (controlNumber == MSG_CONTROL_END) {
         sendMessage(msgFanID, &message);
+        printf("Kibic %d przekazal wiadomosc %d dalej\n", getpid(), controlNumber);
         
         // Zakończ proces
+        printf("Kibic %d opuscil kolejke\n", getpid());
         exit(0);
     }
 
     int messageTeam = pam[SHM_SIZE_WITHOUT_PLACES + controlNumber / PLACES];
+    printf("Druzyna kibica %d: %d\n", getpid(), team);
+    printf("Druzyna otrzymana przez kibica %d: %d\n", getpid(), messageTeam);
 
     if (messageTeam == 0 || messageTeam == team) {
         savedControlNumber = controlNumber;
@@ -87,27 +94,36 @@ void controlProcess() {
     } else {
         // Wysyła dalej ten sam komunikat
         sendMessage(msgFanID, &message);
+        printf("Kibic %d przekazal wiadomosc %d dalej\n", getpid(), controlNumber);
         // Ustawia swoją liczbe przepuszczonych na 1
         passed = 1;
     }
 
-    if (hasChild || savedControlNumber == 0) {
+    if (hasChild || savedControlNumber == -1) {
         // Zwiększa liczbę przepuszczających o 1
         pam[SHM_INDEX_WAITING_NUMBER] = pam[SHM_INDEX_WAITING_NUMBER] + 1;
     }
 
     struct msgCounter messageWithCounter;
 
+    if (hasChild) {
+        printf("Kibic %d ma dziecko\n", getpid());
+    }
+
     // Dopóki potrzebuje miejsca w kontoli
-    while (savedControlNumber == 0 || hasChild && childControlStruct.controlNumber == 0){
+    while (savedControlNumber == -1 || hasChild && childControlStruct.controlNumber == -1){
+        printf("Kibic %d czeka w kolejce dla puszczajacych\n", getpid());
         // Czeka na komunikat dla puszczających
         receiveMessageWithCounter(msgFanID, &messageWithCounter, MSG_EMPTY_CONTROL_FOR_WAITING);
 
         controlNumber = messageWithCounter.mValueWithCounter.value;
+        printf("Kibic %d otrzymal wiadomosc %d\n", getpid(), controlNumber);
 
         if (controlNumber >= 0) {
-            if (savedControlNumber == 0) {
+            if (savedControlNumber == -1) {
                 messageTeam = pam[SHM_SIZE_WITHOUT_PLACES + controlNumber / PLACES];
+                printf("Druzyna kibica %d: %d\n", getpid(), team);
+                printf("Druzyna otrzymana przez kibica %d: %d\n", getpid(), messageTeam);
 
                 if (messageTeam == 0 || messageTeam == team) {
                     savedControlNumber = controlNumber;
@@ -127,7 +143,7 @@ void controlProcess() {
                 if (passed >= 5) {
                     printf("Kibic %d zaczyna jest sfrustrowany (przepuscil innych %d razy)\n", getpid(), passed);
                 }
-            } else if (savedControlNumber && (!hasChild || childControlStruct.controlNumber)) {
+            } else if (savedControlNumber >= 0 && (!hasChild || childControlStruct.controlNumber >= 0)) {
                 pam[SHM_INDEX_WAITING_NUMBER] = pam[SHM_INDEX_WAITING_NUMBER] - 1;
             }
         }
@@ -136,13 +152,16 @@ void controlProcess() {
 
         if (messageWithCounter.mValueWithCounter.counter > 0) {
             sendMessageWithCounter(msgFanID, &messageWithCounter);
+            printf("Kibic %d przekazal wiadomosc %d dalej do %d oczekujacych\n", getpid(), messageWithCounter.mValueWithCounter.value, messageWithCounter.mValueWithCounter.counter);
         } else if (messageWithCounter.mValueWithCounter.value != MSG_CONTROL_TAKEN) {
             message.mValue = messageWithCounter.mValueWithCounter.value;
             sendMessage(msgFanID, &message);
+            printf("Kibic %d przekazal wiadomosc %d dalej\n", getpid(), messageWithCounter.mValueWithCounter.value);
         }
 
         if (messageWithCounter.mValueWithCounter.value == MSG_CONTROL_END) {
             //Zakończ proces
+            printf("Kibic %d opuscil kolejke\n", getpid());
             exit(0);
         }
     }
@@ -160,6 +179,7 @@ void controlProcess() {
     receiveMessage(msgFanID, &message, MSG_QUEUE_FAN_TYPES + savedControlNumber + 1);
 
     if (message.mValue == 0) {
+        printf("Kibic %d nie przeszedl kontroli %d\n", getpid(), savedControlNumber);
         exit(1);
     }
 
@@ -167,6 +187,7 @@ void controlProcess() {
         pthread_join(child, NULL);
 
         if (childControlStruct.result == 0) {
+            printf("Kibic %d nie przeszedl kontroli %d\n", getpid(), childControlStruct.controlNumber);
             exit(1);
         }
     }
@@ -232,6 +253,7 @@ void waitAlone(int gate) {
     if (gate == SEM_EXIT_CONTROL && getSemValue(semID, SEM_EXIT_CONTROL) == 0) {
         // Wyślij komunikat o opuszczeniu stadionu przez wszystkich
         message.mType = MSG_FANS_LEFT;
+        message.mValue = 0;
         sendMessage(msgWorkerID, &message);
     }
 }
@@ -256,5 +278,12 @@ void* childWait(void* gateVoid) {
         signalSem(semID, *gate);
     } else {
         signalSem(semID, *gate == SEM_ENTRANCE_CONTROL ? SEM_EXIT_CONTROL : SEM_ENTRANCE_CONTROL);
+    }
+
+    if (*gate == SEM_EXIT_CONTROL && getSemValue(semID, SEM_EXIT_CONTROL) == 0) {
+        // Wyślij komunikat o opuszczeniu stadionu przez wszystkich
+        message.mType = MSG_FANS_LEFT;
+        message.mValue = 0;
+        sendMessage(msgWorkerID, &message);
     }
 }

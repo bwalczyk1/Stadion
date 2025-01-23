@@ -41,9 +41,6 @@ void closeEntrance() {
 
 void openExit() {
     printf("Wpuszczanie zakonczone\n");
-    // Rozpocznij wypuszczanie kibiców
-    initializeSem(semID, SEM_EXIT_VIP, 1);
-    initializeSem(semID, SEM_EXIT, 1);
 
     // Odpraw kibiców czekających do kontroli
     if (pam[SHM_INDEX_WAITING_NUMBER] > 0) {
@@ -51,25 +48,50 @@ void openExit() {
         messageWithCounter.mValueWithCounter.value = MSG_CONTROL_END;
         messageWithCounter.mValueWithCounter.counter = pam[SHM_INDEX_WAITING_NUMBER];
         sendMessageWithCounter(msgFanID, &messageWithCounter);
+        printf("Pracownik techniczny wyslal wiadomosc do %d czekajacych\n", pam[SHM_INDEX_WAITING_NUMBER]);
     } else {
         message.mType = MSG_EMPTY_CONTROL;
         message.mValue = MSG_CONTROL_END;
         sendMessage(msgFanID, &message);
+        printf("Pracownik techniczny wyslal wiadomosc\n");
     }
 
-    receiveMessage(msgFanID, &message, MSG_EMPTY_CONTROL);
+    while (1) {
+        printf("Pracownik techniczny czeka na wiadomosc\n");
+        receiveMessage(msgFanID, &message, MSG_EMPTY_CONTROL);
+        printf("Pracownik techniczny otrzymal wiadomosc\n");
 
-    // Poczekaj aż wszyscy opuszczą stadion
-    receiveMessage(msgWorkerID, &message, MSG_FANS_LEFT);
+        if (message.mValue == MSG_CONTROL_END) {
+            break;
+        }
+    }
+
+    // Rozpocznij wypuszczanie kibiców
+    initializeSem(semID, SEM_EXIT_VIP, 1);
+    initializeSem(semID, SEM_EXIT, 1);
+    
+    printf("Pracownik techniczny czeka na wiadomosc\n");
+    
+    // while(1) {
+        receiveMessage(msgWorkerID, &message, MSG_FANS_LEFT);
+    // }
+
+    printf("Pracownik techniczny otrzymal wiadomosc\n");
+
     message.mType = MSG_BOSS_INFO;
     message.mValue = MSG_CONTROL_END;
     sendMessage(msgBossID, &message);
 
     // Wyłącz kontrole
+    printf("Pracownik techniczny wylacza kontrole\n");
+    message.mValue = MSG_CONTROL_END;
+    
     for (int i = 0; i < PLACES * CONTROLS_PER_PLACE; i++) {
         message.mType = MSG_QUEUE_CONTROL_TYPES + i + 1;
         sendMessage(msgControlID, &message);
     }
+
+    printf("Pracownik techniczny wylaczyl kontrole\n");
 
     // Zakończ wszystkie procesy synchronizacji
     for (int i = 0; i < SEM_NUMBER; i++){
@@ -88,7 +110,6 @@ void openExit() {
 
 int main() {
     printf("Pracownik techniczny %d rozpoczął pracę.\n", getpid());
-    printf("Main %d\n", getppid());
     // Inicjuje mechanizmy synchronizujące
     msgFanID = initializeMessageQueue(MSG_QUEUE_FAN);
     msgWorkerID = initializeMessageQueue(MSG_QUEUE_WORKER);
@@ -147,7 +168,10 @@ void waitForEmptyControl() {
     // Dopóki true
     while (1) {
         // Czeka na komunikat od kontroli
+        printf("Pracownik techniczny czeka na wiadomosc\n");
         receiveMessage(msgWorkerID, &message, MSG_EMPTY_CONTROL);
+        printf("Pracownik techniczny otrzymal wiadomosc\n");
+
 
         // Jeśli liczba przepuszczających > 0 wysyła do przepuszczających i continue
         if (pam[SHM_INDEX_WAITING_NUMBER] > 0 ) {
@@ -155,11 +179,13 @@ void waitForEmptyControl() {
             messageWithCounter.mValueWithCounter.value = message.mValue;
             messageWithCounter.mValueWithCounter.counter = pam[SHM_INDEX_WAITING_NUMBER];
             sendMessageWithCounter(msgFanID, &messageWithCounter);
+            printf("Pracownik techniczny wyslal wiadomosc do %d czekajacych\n", pam[SHM_INDEX_WAITING_NUMBER]);
 
             continue;
         }
 
         // Wysyła komunikat do zwykłych kibiców
         sendMessage(msgFanID, &message);
+        printf("Pracownik techniczny wyslal wiadomosc\n");
     }
 }

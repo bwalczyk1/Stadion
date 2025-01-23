@@ -22,6 +22,8 @@ int main() {
     message.mType = MSG_EMPTY_CONTROL;
     sendMessage(msgWorkerID, &message);
 
+    printf("Kontrola %d wyslala wiadomosc\n", controlNumber);
+
     while (1) {
         // Czeka na komunikat od kibica
         receiveMessage(msgControlID, &message, MSG_QUEUE_CONTROL_TYPES + controlNumber + 1);
@@ -45,6 +47,7 @@ int main() {
         message.mType = MSG_EMPTY_CONTROL;
         message.mValue = controlNumber;
         sendMessage(msgWorkerID, &message);
+        printf("Kontrola %d wyslala wiadomosc\n", controlNumber);
     }
 
     return 0;

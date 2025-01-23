@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <time.h>
@@ -7,7 +6,6 @@
 #include "settings.h"
 
 int main() {
-    printf("Main %d\n", getpid());
     srand(time(NULL));
 
     // Włącza pracownika technicznego, kierownika i K kibiców
