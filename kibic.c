@@ -50,20 +50,20 @@ int main() {
 
     // Wchodzi na stadion
     waitToEnter();
-    printf("Kibic %d wszedł na stadion", getpid());
+    printf("Kibic %d wszedł na stadion\n", getpid());
     waitToExit();
-    printf("Kibic %d wyszedł ze stadionu", getpid());
+    printf("Kibic %d wyszedł ze stadionu\n", getpid());
 
     exit(0);
 }
 
 void controlProcess() {
-    printf("Kibic %d czeka w kolejce", getpid());
+    printf("Kibic %d czeka w kolejce\n", getpid());
     int* pam = (int*) shmat(shmID, NULL, 0);
-    int isThreat = rand() % 2 + 1;
+    int isThreat = rand() % 2;
     int savedControlNumber = 0;
     struct controlStruct childControlStruct;
-    childControlStruct.isThreat = hasChild ? (rand() % 2 + 1) : 0;
+    childControlStruct.isThreat = hasChild ? (rand() % 2) : 0;
     childControlStruct.controlNumber = 0;
     int passed = 0;
 
@@ -125,7 +125,7 @@ void controlProcess() {
 
                 // Jeśli liczba przepuszczonych >= 5, zaczyna wyświetla informację o frustracji i agresywnym zachowaniu
                 if (passed >= 5) {
-                    // ...
+                    printf("Kibic %d zaczyna jest sfrustrowany (przepuscil innych %d razy)\n", getpid(), passed);
                 }
             } else if (savedControlNumber && (!hasChild || childControlStruct.controlNumber)) {
                 pam[SHM_INDEX_WAITING_NUMBER] = pam[SHM_INDEX_WAITING_NUMBER] - 1;
@@ -148,7 +148,7 @@ void controlProcess() {
     }
 
     // Ustawia się do stanowiska
-    printf("Kibic %d przechodzi kontrole %d", getpid(), savedControlNumber);
+    printf("Kibic %d przechodzi kontrole %d\n", getpid(), savedControlNumber);
     
     if (hasChild) {
         pthread_create(&child, NULL, &childControl, (void*) &childControlStruct);

@@ -6,6 +6,7 @@
 #include <sys/errno.h>
 #include <sys/msg.h>
 #include <sys/shm.h>
+#include <unistd.h>
 
 // struktura komunikatu
 struct msg {
@@ -28,7 +29,7 @@ key_t getFtokKey(int keyID) {
     key_t ftokKey = ftok(".", keyID);
 
     if (ftokKey == -1) {
-        printf("Blad ftok (main)\n");
+        printf("Blad ftok (%d)\n", getpid());
         exit(1);
     }
 
@@ -40,7 +41,7 @@ int initializeMessageQueue(int keyID) {
     int msgID = msgget(ftokKey, IPC_CREAT | 0666);
 
     if (msgID == -1) {
-        printf("Blad kolejki komunikatow\n"); 
+        printf("Blad kolejki komunikatow (%d)\n", getpid()); 
         exit(1);
     }
 
@@ -52,7 +53,7 @@ int initializeSharedMemory(int keyID, int shmSize) {
     int shmID = shmget(ftokKey, shmSize, IPC_CREAT | 0666);
     
     if (shmID == -1) {
-        printf("Blad pamieci dzielonej\n");
+        printf("Blad pamieci dzielonej (%d)\n", getpid());
         exit(1);
     }
 
@@ -61,28 +62,28 @@ int initializeSharedMemory(int keyID, int shmSize) {
 
 void sendMessage(int msgID, struct msg* message) {
     if (msgsnd(msgID, message, sizeof(message->mValue), 0) == -1) {
-        printf("Blad wyslania komunikatu\n");
+        printf("Blad wyslania komunikatu (%d)\n", getpid());
         exit(1);
     }
 }
 
 void sendMessageWithCounter(int msgID, struct msgCounter* messageWithCounter) {
     if (msgsnd(msgID, messageWithCounter, sizeof(messageWithCounter->mValueWithCounter), 0) == -1) {
-        printf("Blad wyslania komunikatu\n");
+        printf("Blad wyslania komunikatu (%d)\n", getpid());
         exit(1);
     }
 }
 
 void receiveMessage(int msgID, struct msg* message, int msgType) {
     if (msgrcv(msgID, message, sizeof(message->mValue), msgType, 0) == -1) {
-        printf("Blad odbioru komunikatu\n");
+        printf("Blad odbioru komunikatu (%d)\n", getpid());
         exit(1);
     }
 }
 
 void receiveMessageWithCounter(int msgID, struct msgCounter* messageWithCounter, int msgType) {
     if (msgrcv(msgID, messageWithCounter, sizeof(messageWithCounter->mValueWithCounter), msgType, 0) == -1) {
-        printf("Blad odbioru komunikatu\n");
+        printf("Blad odbioru komunikatu (%d)\n", getpid());
         exit(1);
     }
 }
@@ -124,7 +125,7 @@ int waitSem(int semID, int number)
     
     if ( semop(semID, operacje, 1) == -1 )
     {
-        //perror("Blad semop (waitSemafor)");
+        perror("Blad semop (waitSemafor)");
         return -1;
     }
     

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <signal.h>
 #include <time.h>
@@ -9,6 +10,7 @@
 
 
 int main() {
+    printf("Kierownik %d rozpoczął pracę.\n", getpid());
     srand(time(NULL));
     // Odbiera komunikat o PID pracownika
     int msgBossID = initializeMessageQueue(MSG_QUEUE_BOSS);

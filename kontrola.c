@@ -1,5 +1,5 @@
 #include <stdlib.h>
-
+#include <stdio.h>
 #include "helpers.h"
 #include "settings.h"
 
@@ -16,6 +16,7 @@ int main() {
     receiveMessage(msgControlID, &message, MSG_INITIATE_CONTROL);
 
     int controlNumber = message.mValue;
+    printf("Kontrola %d wlaczona\n", controlNumber);
 
     // Wysyła komunikat o wolnym miejscu
     message.mType = MSG_EMPTY_CONTROL;

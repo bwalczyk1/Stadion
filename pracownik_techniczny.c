@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -16,21 +17,30 @@ int shmID, msgFanID, msgWorkerID, msgControlID, msgBossID, semID;  // ID kolejek
 int* pam; // wskaźnik do pamięci dzielonej
 int placesLeft; // liczba pozostałych miejsc na stadionie
 
+void waitForEmptyControl();
+
 void openEntrance() {
     if (placesLeft > 0){
+        printf("Wejście otwarte\n");
         initializeSem(semID, SEM_ENTRANCE_CONTROL, placesLeft);
         placesLeft = 0;
     }
+
+    waitForEmptyControl();
 }
 
 void closeEntrance() {
     if (placesLeft == 0){
+        printf("Wejście zamknięte\n");
         placesLeft = getSemValue(semID, SEM_ENTRANCE_CONTROL);
         initializeSem(semID, SEM_ENTRANCE_CONTROL, 0);
     }
+
+    waitForEmptyControl();
 }
 
 void openExit() {
+    printf("Wpuszczanie zakonczone\n");
     // Rozpocznij wypuszczanie kibiców
     initializeSem(semID, SEM_EXIT_VIP, 1);
     initializeSem(semID, SEM_EXIT, 1);
@@ -73,9 +83,12 @@ void openExit() {
     msgctl(msgWorkerID, IPC_RMID, NULL);
     msgctl(msgBossID, IPC_RMID, NULL);
     msgctl(msgControlID, IPC_RMID, NULL);
+    kill(getppid(), SIGKILL);
 }
 
 int main() {
+    printf("Pracownik techniczny %d rozpoczął pracę.\n", getpid());
+    printf("Main %d\n", getppid());
     // Inicjuje mechanizmy synchronizujące
     msgFanID = initializeMessageQueue(MSG_QUEUE_FAN);
     msgWorkerID = initializeMessageQueue(MSG_QUEUE_WORKER);
@@ -104,11 +117,12 @@ int main() {
     sendMessage(msgBossID, &message);
 
     // Ustawia odpowiednie semafory
+    initializeSem(semID, SEM_EXIT_CONTROL, 0);
+    initializeSem(semID, SEM_EXIT_VIP, 0);
+    initializeSem(semID, SEM_EXIT, 0);
     initializeSem(semID, SEM_ENTRANCE_VIP, 1);
     initializeSem(semID, SEM_ENTRANCE, 1);
 
-    placesLeft = K;
-    openEntrance();
 
     for (int i = 0; i < PLACES * CONTROLS_PER_PLACE; i++) {
         // Włącza proces kontroli
@@ -123,6 +137,13 @@ int main() {
         sendMessage(msgControlID, &message);
     }
 
+    placesLeft = K;
+    openEntrance();
+
+    return 0;
+}
+
+void waitForEmptyControl() {
     // Dopóki true
     while (1) {
         // Czeka na komunikat od kontroli
@@ -141,6 +162,4 @@ int main() {
         // Wysyła komunikat do zwykłych kibiców
         sendMessage(msgFanID, &message);
     }
-
-    return 0;
 }

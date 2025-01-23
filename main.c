@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <time.h>
@@ -6,6 +7,7 @@
 #include "settings.h"
 
 int main() {
+    printf("Main %d\n", getpid());
     srand(time(NULL));
 
     // Włącza pracownika technicznego, kierownika i K kibiców
@@ -18,12 +20,12 @@ int main() {
     }
 
     for (int i = 0; i < K; i++) {
-        sleep(rand() % 5 + 1);
+        usleep((rand() % 2000 + 1000) * 1000);
 
         if (fork() == 0) {
             execl("./kibic", "kibic", NULL);
         }
     }
 
-    return 0;
+    while (1);
 }

@@ -32,4 +32,4 @@
 
 #define SEM_NUMBER 6
 
-#define K 1000
+#define K 10
