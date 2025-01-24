@@ -57,9 +57,7 @@ void openExit() {
     }
 
     while (1) {
-        printf("Pracownik techniczny czeka na wiadomosc\n");
         receiveMessage(msgFanID, &message, MSG_EMPTY_CONTROL);
-        printf("Pracownik techniczny otrzymal wiadomosc\n");
 
         if (message.mValue == MSG_CONTROL_END) {
             break;
@@ -73,11 +71,7 @@ void openExit() {
         initializeSem(semID, SEM_EXIT, 1);
 
         printf("Pracownik techniczny czeka na wiadomosc\n");
-
-        // while(1) {
-            receiveMessage(msgWorkerID, &message, MSG_FANS_LEFT);
-        // }
-
+        receiveMessage(msgWorkerID, &message, MSG_FANS_LEFT);
         printf("Pracownik techniczny otrzymal wiadomosc\n");
     }
 
@@ -169,7 +163,6 @@ int main() {
 }
 
 void waitForEmptyControl() {
-    // Dopóki true
     while (1) {
         // Czeka na komunikat od kontroli
         printf("Pracownik techniczny czeka na wiadomosc\n");
