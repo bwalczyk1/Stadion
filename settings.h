@@ -32,5 +32,11 @@
 
 #define SEM_NUMBER 6
 
+#define VIP_PER_MILLE 3
+#define TEAM_1_CHANCE 50
+#define CHILD_CHANCE 20
+#define THREAT_CHANCE 30
+#define CHILD_THREAT_CHANCE 5
+
 #define FANS 400
 #define K 100

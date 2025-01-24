@@ -40,9 +40,9 @@ int main() {
 
     // Przechowuje informacje o sobie
     srand(getpid());
-    team = rand() % 2 + 1;
-    hasChild = rand() % 2;
-    isVip = rand() % 2;
+    team = (rand() % 100 < TEAM_1_CHANCE) + 1;
+    hasChild = rand() % 100 < CHILD_CHANCE;
+    isVip = rand() % 1000 < VIP_PER_MILLE;
 
     if (!isVip) {
         controlProcess();
@@ -62,10 +62,10 @@ int main() {
 void controlProcess() {
     printf("Kibic %d czeka w kolejce\n", getpid());
     int* pam = (int*) shmat(shmID, NULL, 0);
-    int isThreat = rand() % 2;
+    int isThreat = rand() % 100 < THREAT_CHANCE;
     int savedControlNumber = -1;
     struct controlStruct childControlStruct;
-    childControlStruct.isThreat = hasChild ? (rand() % 2) : 0;
+    childControlStruct.isThreat = hasChild ? (rand() % 100 < CHILD_THREAT_CHANCE) : 0;
     childControlStruct.controlNumber = -1;
     int passed = 0;
 
