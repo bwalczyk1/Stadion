@@ -8,7 +8,7 @@
 int main() {
     srand(getpid());
 
-    // Włącza pracownika technicznego, kierownika i K kibiców
+    // Włącza pracownika technicznego, kierownika i kibiców
     if (fork() == 0) {
         execl("./pracownik_techniczny", "pracownik_techniczny", NULL);
     }

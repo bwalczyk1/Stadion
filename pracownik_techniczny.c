@@ -48,12 +48,10 @@ void openExit() {
         messageWithCounter.mValueWithCounter.value = MSG_CONTROL_END;
         messageWithCounter.mValueWithCounter.counter = pam[SHM_INDEX_WAITING_NUMBER];
         sendMessageWithCounter(msgFanID, &messageWithCounter);
-        printf("Pracownik techniczny wyslal wiadomosc do %d czekajacych\n", pam[SHM_INDEX_WAITING_NUMBER]);
     } else {
         message.mType = MSG_EMPTY_CONTROL;
         message.mValue = MSG_CONTROL_END;
         sendMessage(msgFanID, &message);
-        printf("Pracownik techniczny wyslal wiadomosc\n");
     }
 
     while (1) {
@@ -70,9 +68,7 @@ void openExit() {
         initializeSem(semID, SEM_EXIT_VIP, 1);
         initializeSem(semID, SEM_EXIT, 1);
 
-        printf("Pracownik techniczny czeka na wiadomosc\n");
         receiveMessage(msgWorkerID, &message, MSG_FANS_LEFT);
-        printf("Pracownik techniczny otrzymal wiadomosc\n");
     }
 
     message.mType = MSG_BOSS_INFO;
@@ -80,7 +76,6 @@ void openExit() {
     sendMessage(msgBossID, &message);
 
     // Wyłącz kontrole
-    printf("Pracownik techniczny wylacza kontrole\n");
     message.mValue = MSG_CONTROL_END;
     
     for (int i = 0; i < PLACES * CONTROLS_PER_PLACE; i++) {
@@ -165,10 +160,7 @@ int main() {
 void waitForEmptyControl() {
     while (1) {
         // Czeka na komunikat od kontroli
-        printf("Pracownik techniczny czeka na wiadomosc\n");
         receiveMessage(msgWorkerID, &message, MSG_EMPTY_CONTROL);
-        printf("Pracownik techniczny otrzymal wiadomosc\n");
-
 
         // Jeśli liczba przepuszczających > 0 wysyła do przepuszczających i continue
         if (pam[SHM_INDEX_WAITING_NUMBER] > 0 ) {
@@ -176,13 +168,11 @@ void waitForEmptyControl() {
             messageWithCounter.mValueWithCounter.value = message.mValue;
             messageWithCounter.mValueWithCounter.counter = pam[SHM_INDEX_WAITING_NUMBER];
             sendMessageWithCounter(msgFanID, &messageWithCounter);
-            printf("Pracownik techniczny wyslal wiadomosc do %d czekajacych\n", pam[SHM_INDEX_WAITING_NUMBER]);
 
             continue;
         }
 
         // Wysyła komunikat do zwykłych kibiców
         sendMessage(msgFanID, &message);
-        printf("Pracownik techniczny wyslal wiadomosc\n");
     }
 }

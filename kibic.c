@@ -139,9 +139,9 @@ void controlProcess() {
                 // Zwiększa liczbę przepuszczonych o 1
                 passed += 1;
 
-                // Jeśli liczba przepuszczonych >= 5, zaczyna wyświetla informację o frustracji i agresywnym zachowaniu
-                if (passed >= 5) {
-                    printf("Kibic %d zaczyna jest sfrustrowany (przepuscil innych %d razy)\n", getpid(), passed);
+                // Jeśli liczba przepuszczonych osiągnie 5, wyświetla informację o frustracji
+                if (passed == 5) {
+                    printf("Kibic %d zaczyna jest sfrustrowany\n", getpid());
                 }
             } else if (savedControlNumber >= 0 && (!hasChild || childControlStruct.controlNumber >= 0)) {
                 pam[SHM_INDEX_WAITING_NUMBER] = pam[SHM_INDEX_WAITING_NUMBER] - 1;
@@ -152,7 +152,7 @@ void controlProcess() {
 
         if (messageWithCounter.mValueWithCounter.counter > 0) {
             sendMessageWithCounter(msgFanID, &messageWithCounter);
-            printf("Kibic %d przekazal wiadomosc %d dalej do %d oczekujacych\n", getpid(), messageWithCounter.mValueWithCounter.value, messageWithCounter.mValueWithCounter.counter);
+            printf("Kibic %d przekazal wiadomosc %d dalej\n", getpid(), messageWithCounter.mValueWithCounter.value);
         } else if (messageWithCounter.mValueWithCounter.value != MSG_CONTROL_TAKEN) {
             message.mValue = messageWithCounter.mValueWithCounter.value;
             sendMessage(msgFanID, &message);
