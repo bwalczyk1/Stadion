@@ -32,4 +32,5 @@
 
 #define SEM_NUMBER 6
 
-#define K 10
+#define FANS 400
+#define K 100

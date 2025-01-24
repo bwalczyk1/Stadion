@@ -6,7 +6,7 @@
 #include "settings.h"
 
 int main() {
-    srand(time(NULL));
+    srand(getpid());
 
     // Włącza pracownika technicznego, kierownika i K kibiców
     if (fork() == 0) {
@@ -17,7 +17,7 @@ int main() {
         execl("./kierownik", "kierownik", NULL);
     }
 
-    for (int i = 0; i < K; i++) {
+    for (int i = 0; i < FANS; i++) {
         usleep((rand() % 2000 + 1000) * 1000);
 
         if (fork() == 0) {

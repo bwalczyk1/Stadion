@@ -39,7 +39,7 @@ int main() {
     shmID = initializeSharedMemory(SHM_KEY_ID, (SHM_SIZE_WITHOUT_PLACES + PLACES) * sizeof(int));
 
     // Przechowuje informacje o sobie
-    srand(time(NULL));
+    srand(getpid());
     team = rand() % 2 + 1;
     hasChild = rand() % 2;
     isVip = rand() % 2;

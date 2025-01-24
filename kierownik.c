@@ -11,7 +11,7 @@
 
 int main() {
     printf("Kierownik %d rozpoczął pracę.\n", getpid());
-    srand(time(NULL));
+    srand(getpid());
     // Odbiera komunikat o PID pracownika
     int msgBossID = initializeMessageQueue(MSG_QUEUE_BOSS);
     struct msg message;

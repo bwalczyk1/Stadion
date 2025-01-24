@@ -66,17 +66,20 @@ void openExit() {
         }
     }
 
-    // Rozpocznij wypuszczanie kibiców
-    initializeSem(semID, SEM_EXIT_VIP, 1);
-    initializeSem(semID, SEM_EXIT, 1);
-    
-    printf("Pracownik techniczny czeka na wiadomosc\n");
-    
-    // while(1) {
-        receiveMessage(msgWorkerID, &message, MSG_FANS_LEFT);
-    // }
+    // Jeśli na stadionie są jacyś kibice 
+    if (getSemValue(semID, SEM_EXIT_CONTROL) > 0){
+        // Rozpocznij wypuszczanie kibiców
+        initializeSem(semID, SEM_EXIT_VIP, 1);
+        initializeSem(semID, SEM_EXIT, 1);
 
-    printf("Pracownik techniczny otrzymal wiadomosc\n");
+        printf("Pracownik techniczny czeka na wiadomosc\n");
+
+        // while(1) {
+            receiveMessage(msgWorkerID, &message, MSG_FANS_LEFT);
+        // }
+
+        printf("Pracownik techniczny otrzymal wiadomosc\n");
+    }
 
     message.mType = MSG_BOSS_INFO;
     message.mValue = MSG_CONTROL_END;
@@ -106,6 +109,7 @@ void openExit() {
     msgctl(msgBossID, IPC_RMID, NULL);
     msgctl(msgControlID, IPC_RMID, NULL);
     kill(getppid(), SIGKILL);
+    exit(0);
 }
 
 int main() {
@@ -122,7 +126,7 @@ int main() {
     pam[SHM_INDEX_WAITING_NUMBER] = 0;
 
     for (int i = 0; i < PLACES; i++) {
-        pam[SHM_SIZE_WITHOUT_PLACES + i] = 0;
+        pam[SHM_SIZE_WITHOUT_PLACES + i] = i % 3;
     } 
 
     // Obsługuje sygnał1
