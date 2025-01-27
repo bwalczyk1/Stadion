@@ -40,6 +40,8 @@ void closeEntrance() {
 }
 
 void openExit() {
+    // Zakończ tworzenie kibiców
+    kill(getppid(), SIGINT);
     printf("Wpuszczanie zakonczone\n");
 
     // Odpraw kibiców czekających do kontroli
@@ -97,7 +99,6 @@ void openExit() {
     msgctl(msgWorkerID, IPC_RMID, NULL);
     msgctl(msgBossID, IPC_RMID, NULL);
     msgctl(msgControlID, IPC_RMID, NULL);
-    kill(getppid(), SIGKILL);
     exit(0);
 }
 
@@ -140,15 +141,24 @@ int main() {
 
     for (int i = 0; i < PLACES * CONTROLS_PER_PLACE; i++) {
         // Włącza proces kontroli
-        if (fork() == 0) {
-            execl("./kontrola", "kontrola", NULL);
+        switch(fork()) {
+            case -1:
+                perror("Blad wydzielenia procesu");
+                i--;
+                break;
+            case 0:
+                if (execl("./kontrola", "kontrola", NULL) == -1) {
+                    perror("Blad wywolania procesu");
+                }
+
+                break;
+            default:
+                // Wysyła kontroli jej numer
+                message.mType = MSG_INITIATE_CONTROL;
+                message.mValue = i;
+
+                sendMessage(msgControlID, &message);
         }
-
-        // Wysyła kontroli jej numer
-        message.mType = MSG_INITIATE_CONTROL;
-        message.mValue = i;
-
-        sendMessage(msgControlID, &message);
     }
 
     placesLeft = K;

@@ -31,6 +31,7 @@
 #define SEM_EXIT_CONTROL 5
 
 #define SEM_NUMBER 6
+#define TRIES 3
 
 #define VIP_PER_MILLE 3
 #define TEAM_1_CHANCE 50

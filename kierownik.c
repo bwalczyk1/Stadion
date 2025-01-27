@@ -30,5 +30,5 @@ int main() {
     // Odbiera informacje, że wszyscy kibice opuścili stadion
     receiveMessage(msgBossID, &message, MSG_BOSS_INFO);
     
-    return 0;
+    exit(0);
 }

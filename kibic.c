@@ -141,7 +141,7 @@ void controlProcess() {
 
                 // Jeśli liczba przepuszczonych osiągnie 5, wyświetla informację o frustracji
                 if (passed == 5) {
-                    printf("Kibic %d zaczyna jest sfrustrowany\n", getpid());
+                    printf("Kibic %d jest sfrustrowany\n", getpid());
                 }
             } else if (savedControlNumber >= 0 && (!hasChild || childControlStruct.controlNumber >= 0)) {
                 pam[SHM_INDEX_WAITING_NUMBER] = pam[SHM_INDEX_WAITING_NUMBER] - 1;
@@ -180,7 +180,7 @@ void controlProcess() {
 
     if (message.mValue == 0) {
         printf("Kibic %d nie przeszedl kontroli %d\n", getpid(), savedControlNumber);
-        exit(1);
+        exit(0);
     }
 
     if (hasChild) {
@@ -188,7 +188,7 @@ void controlProcess() {
 
         if (childControlStruct.result == 0) {
             printf("Kibic %d nie przeszedl kontroli %d\n", getpid(), childControlStruct.controlNumber);
-            exit(1);
+            exit(0);
         }
     }
 }

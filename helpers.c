@@ -8,6 +8,8 @@
 #include <sys/shm.h>
 #include <unistd.h>
 
+#include "settings.h"
+
 // struktura komunikatu
 struct msg {
 	long mType;
@@ -117,17 +119,21 @@ void initializeSem(int semID, int number, int val)
 
 void waitSem(int semID, int number)
 {
-    int result;
     struct sembuf operacje[1];
     operacje[0].sem_num = number;
     operacje[0].sem_op = -1;
     operacje[0].sem_flg = 0;;
     
-    if ( semop(semID, operacje, 1) == -1 )
-    {
-        perror("Blad semop");
-        exit(1);
+    for (int i = 0; i < TRIES; i++) {
+        if (semop(semID, operacje, 1) == -1) {
+            perror("Blad semop");
+            continue;
+        }
+
+        return;
     }
+            
+    exit(1);
 }
 
 void signalSem(int semID, int number)
@@ -136,8 +142,16 @@ void signalSem(int semID, int number)
     operacje[0].sem_num = number;
     operacje[0].sem_op = 1;
 
-    if (semop(semID, operacje, 1) == -1 )
-        perror("Blad semop: ");
+    for (int i = 0; i < TRIES; i++) {
+        if (semop(semID, operacje, 1) == -1) {
+            perror("Blad semop");
+            continue;
+        }
+
+        return;
+    }
+
+    exit(1);
 }
 
 int getSemValue(int semID, int number)
